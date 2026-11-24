@@ -52,6 +52,20 @@ def main() -> int:
         raise SystemExit("read-back length %d out of range" % len(text))
     if text.strip() == "" or "\n" in text or "\r" in text:
         raise SystemExit("read-back is not a single non-blank line")
+    # Exact byte-length verification: the bytes on disk must be
+    # precisely len(data) bytes long -- no trailing newline, no
+    # truncation, no extra bytes -- confirmed three ways.
+    if len(written) != len(data):
+        raise SystemExit(
+            "read-back byte length %d != expected %d" % (len(written), len(data))
+        )
+    if os.path.getsize(out_path) != len(data):
+        raise SystemExit(
+            "on-disk file size %d != expected %d bytes"
+            % (os.path.getsize(out_path), len(data))
+        )
+    if hashlib.sha256(written).hexdigest() != hashlib.sha256(data).hexdigest():
+        raise SystemExit("read-back sha256 differs from the intended bytes")
 
     digest = hashlib.sha256(written).hexdigest()
     print("wrote %s (%d chars, sha256 %s)" % (out_path, len(text), digest))
